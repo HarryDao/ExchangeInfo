@@ -1,0 +1,4 @@
+/node_modules
+/build
+/src/configs/db.ts
+/src/configs/finnhub.ts
