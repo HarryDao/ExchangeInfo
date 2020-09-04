@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "concurrently npm:dev:*",
     "dev:server": "nodemon build/index.js --watch build",
-    "dev:build": "tsc -w"
+    "dev:build": "tsc -w",
+    "build": "tsc",
+    "start": "node index.js",
+    "start:pm2": "pm2 start index.js --name 'ExchangeInfo' && pm2 logs -f ExchangeInfo"
   },
   "author": "",
   "license": "ISC",
