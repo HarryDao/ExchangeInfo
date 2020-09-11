@@ -36,11 +36,22 @@ export class Live {
         this.init();
     }
 
+    reconnect = () => {
+        console.log('reconnect');
+        this.socket.removeAllListeners();
+        this.socket.close();
+
+        this.initialized = false;
+        this.socket = new WebSocket(WS_URL);
+
+        this.init();
+    }
+
     private init = () => {
         console.log('opening');
         this.socket.addEventListener('open', this.onOpen);
         this.socket.addEventListener('message', this.onMessage);
-        this.socket.addEventListener('error', this.onError)
+        this.socket.addEventListener('error', this.onError);
     }
 
     private onOpen = () => {
@@ -56,7 +67,7 @@ export class Live {
         } else if (event.type === 'message') {
             this.onData(event.data);
         } else {
-            console.log('Message:', event);
+            console.log('Live Message exception:', event);
         }
     }
 

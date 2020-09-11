@@ -6,13 +6,13 @@ import {
     CurrencyData,
     CommodityData,
 } from './components';
-
 import {
     EntityTypes,
     ExchangeEntity,
     TypeData,
     TypeHistoricalPricesResponse,
 } from '../types';
+import { FINNHUB_SOCKET_WAIT_TIME_BEFORE_RESET } from '../configs';
 
 export class ExchangeData {
     private static instance: ExchangeData;
@@ -20,8 +20,10 @@ export class ExchangeData {
         if (!ExchangeData.instance) ExchangeData.instance = new ExchangeData();
         return ExchangeData.instance;
     }
-    
-    private live = Live.getInstance();
+
+    private liveData = Live.getInstance();
+    private liveSocketTimeout: NodeJS.Timeout | null = null;
+
     private historicalData = HistoricalData.getInstance();
     private cryptoData = CryptoData.getInstance();
     private currencyData = CurrencyData.getInstance();
@@ -37,8 +39,11 @@ export class ExchangeData {
     init = async () => {
         try {
             await this.fetchSymbols();
+
+            this.subscribeHistoryData();
+
             this.subscribeNewDataCallback();
-            this.subscribeSymbols();
+            this.subscribeLiveData();
         } catch(error) {
             console.error('Data init error:', error);
         }
@@ -122,7 +127,11 @@ export class ExchangeData {
     };
 
     private subscribeNewDataCallback = () => {
-        this.live.subscribeNewDataCallback(data => {
+        this.setLiveSocketTimeout();
+
+        this.liveData.subscribeNewDataCallback(data => {
+            this.setLiveSocketTimeout();
+
             if (data.type === EntityTypes.crypto) {
                 this.cryptoData.onNewData(data);
             } else if (data.type === EntityTypes.currency) {
@@ -135,7 +144,19 @@ export class ExchangeData {
         });
     };
 
-    private subscribeSymbols = () => {
+    private setLiveSocketTimeout = () => {
+        if (this.liveSocketTimeout) {
+            clearTimeout(this.liveSocketTimeout);
+        }
+
+        this.liveSocketTimeout = setTimeout(() => {
+            this.liveData.reconnect();
+
+            this.subscribeLiveData();
+        }, FINNHUB_SOCKET_WAIT_TIME_BEFORE_RESET);
+    }
+
+    private subscribeHistoryData = () => {
         const symbols = [
             ...Object.values(
                 this.cryptoData.getSymbols()
@@ -148,7 +169,22 @@ export class ExchangeData {
             ),
         ];
 
-        this.live.addSymbols(...symbols);
         this.historicalData.subscribeSymbols(...symbols);
+    };
+
+    private subscribeLiveData = () => {
+        const symbols = [
+            ...Object.values(
+                this.cryptoData.getSymbols()
+            ),
+            ...Object.values(
+                this.currencyData.getSymbols()
+            ),
+            ...Object.values(
+                this.commodityData.getSymbols()
+            ),
+        ];
+        
+        this.liveData.addSymbols(...symbols);
     }
 }
