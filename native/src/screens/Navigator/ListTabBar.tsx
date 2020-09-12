@@ -6,9 +6,8 @@ import { COLORS, TYPOS } from 'styles';
 import { ListTabBarButton } from './ListTabBarButton';
 
 
-interface ListTabBarProps extends BottomTabBarProps {
+interface ListTabBarProps extends BottomTabBarProps {}
 
-}
 const _ListTabBar = ({
     state,
     descriptors,

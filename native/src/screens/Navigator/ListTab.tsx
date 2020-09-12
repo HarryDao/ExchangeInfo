@@ -1,10 +1,8 @@
 import React, { memo, useCallback } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import {
-    ForexScreen,
-    CommodityScreen,
-    CryptoScreen
-} from 'screens';
+import { ForexScreen } from '../ForexScreen';
+import { CommodityScreen } from '../CommodityScreen';
+import { CryptoScreen } from '../CryptoScreen';
 import { ListTabBar } from './ListTabBar';
 import { MainStackNavContext } from 'context';
 

@@ -22,9 +22,12 @@ const _DetailInfoItem = ({
                 {label.toUpperCase()}
             </Text>
             <View style={styles.infoContent}>
-                {content.map(line => {
+                {content.map((line, index) => {
                     return (
-                        <Text style={styles.infoContentLine}>
+                        <Text 
+                            key={index}
+                            style={styles.infoContentLine}
+                        >
                             {`${line}`.toUpperCase()}
                         </Text>
                     );
@@ -40,7 +43,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     infoLabel: {
-        color: COLORS.grey,
+        color: COLORS.grey_white,
         ...TYPOS.xsmall,
     },
     infoContent: {

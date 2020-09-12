@@ -1,5 +1,5 @@
 import React from 'react';
-import { G, Text, Rect } from 'react-native-svg';
+import { G, Rect } from 'react-native-svg';
 import { CANDLE_CONFIGS } from 'configs';
 import { COLORS } from 'styles';
 
@@ -52,12 +52,14 @@ export class CandleTick extends React.PureComponent<CandleTickProps> {
 
         if (!priceScale) return null;
 
-        const y1 = priceScale.getPosition(h);
-        const y2 = priceScale.getPosition(l);
+        const y1 = priceScale.getPositionFromPrice(h);
+        const y2 = priceScale.getPositionFromPrice(l);
+
+        if (y1 === null || y2 === null) return null;
 
         return (
             <Rect
-                x={TICK_WIDTH / 2 - HIGH_LOW_WIDTH / 2}
+                x={- HIGH_LOW_WIDTH / 2}
                 width={HIGH_LOW_WIDTH}
                 y={y1}
                 height={y2 - y1}
@@ -75,12 +77,14 @@ export class CandleTick extends React.PureComponent<CandleTickProps> {
 
         if (!priceScale) return null;
 
-        const y1 = priceScale.getPosition(upper);
-        const y2 = priceScale.getPosition(lower);
+        const y1 = priceScale.getPositionFromPrice(upper);
+        const y2 = priceScale.getPositionFromPrice(lower);
+
+        if (y1 === null || y2 === null) return null;
 
         return (
             <Rect
-                x={TICK_WIDTH / 2 - CLOSE_OPEN_WIDTH / 2}
+                x={-CLOSE_OPEN_WIDTH / 2}
                 width={CLOSE_OPEN_WIDTH}
                 y={y1}
                 height={y2 - y1}
@@ -93,13 +97,13 @@ export class CandleTick extends React.PureComponent<CandleTickProps> {
         const {
             timeScale,
             priceScale,
-            price
+            price,
         } = this.props;
 
         if (!timeScale || !priceScale) return null;
 
         const { upper, lower, isIncrease } = this.analyze();
-        const x = timeScale.getPosition(price.t);
+        const x = timeScale.getPosition(price.t) as number;
 
         return (
             <G

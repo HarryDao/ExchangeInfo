@@ -1,15 +1,13 @@
-import _cloneDeep from 'lodash/cloneDeep';
 import * as d3 from 'd3';
 import moment from 'moment';
 import { CANDLE_CONFIGS } from 'configs';
 
-import { TimeInSeconds, TypeCandle, TypePrice } from 'apis';
+import { TimeInSeconds, TypeCandle } from 'apis';
 import { Moment } from 'moment';
-import cloneDeep from 'lodash/cloneDeep';
 
 const {
-    TIME_PADDING_IN_DAYS,
     TIME_UNITS_ON_SCREEN,
+    TICK_WIDTH,
 } = CANDLE_CONFIGS;
 
 export interface TimeLabel {
@@ -17,181 +15,84 @@ export interface TimeLabel {
     position: number;
 }
 
-type TimeInMs = number;
-
-export interface TypePriceExtentTick {
-    time: TimeInMs;
-    min: number;
-    max: number;
+export interface TimeTick extends TypeCandle {
+    date: Moment;
 }
 
 export class TimeScale {
-    private contentWidth: number;
-    private boxWidth: number;
-    private ticks: TypePriceExtentTick[];
-    private labels: TimeLabel[];
-    private extent: [Moment, Moment];
-    private scale: d3.ScaleLinear<number, number>;
+    private ticks: TimeTick[] = [];
+    private labels: TimeLabel[] = [];
+    private extent: [Moment, Moment] | null = null;
+    private scale: d3.ScaleLinear<number, number> | null = null;
+    private paddingInTicks: number = 0;
 
     constructor(
+        private boxWidth: number,
+        private contentWidth: number,
         data: TypeCandle[],
-        boxWidth: number,
-        contentWidth: number,
     ) {
-        const ticks = this.getPriceExtentTicks(data, boxWidth, contentWidth);
-        const extent = this.getTimeExtent(data);
-        const scale = this.createScale(extent, contentWidth);
-        const labels = this.createLabels(
-            data,
-            boxWidth,
-            contentWidth,
-            scale
-        );
+        this.paddingInTicks = Math.floor(boxWidth / (TICK_WIDTH * 2));
 
-        this.contentWidth = contentWidth;
-        this.boxWidth = boxWidth;
-        this.ticks = ticks;
-        this.labels = labels;
-        this.extent = extent;
-        this.scale = scale;
+        this.createTicks(data);
+        this.createTimeExtent();
+        this.createScale();
+        this.createLabels();
     }
 
-    private getTimeExtent = (
-        data: TypeCandle[],
-    ): [Moment, Moment] => {
-        const dates = data.map(price => moment(price.t * 1000));
+    private createTicks = (data: TypeCandle[]) => {
+        this.ticks = data
+            .map(candle => {
+                return {
+                    ...candle,
+                    date: moment(candle.t * 1000)
+                }
+            })
+            .sort((a, b) => a.t < b.t ? -1 : 1);
+    };
 
-        const extent = d3.extent(dates) as [Moment, Moment];
+    private createTimeExtent = () => {
+        const { ticks, paddingInTicks } = this;
+        const [rawMin, rawMax] = d3.extent(ticks.map(tick => tick.date)) as [Moment, Moment];
 
-        const min = moment(extent[0]).subtract(
-            TIME_PADDING_IN_DAYS,
+
+        const min = moment(rawMin).subtract(
+            paddingInTicks,
             'day'
         );
-        const max = moment(extent[1]).add(
-            TIME_PADDING_IN_DAYS,
+        const max = moment(rawMax).add(
+            paddingInTicks,
             'day'
         );
 
-        return [min, max];
+        this.extent =[min, max];
     }
 
-    private createScale = (
-        extent: [Moment, Moment],
-        contentWidth: number,
-    ): d3.ScaleLinear<number, number> => {
-        return  d3.scaleLinear()
-            .domain(extent.map(m => m.valueOf()))
-            .range([0, contentWidth]);
-    }
+    private createScale = () => {
+        const { extent, contentWidth } = this;
 
-    // private getPriceExtentTick = (
-    //     data: TypeCandle[],
-    //     boxWidth: number,
-    //     contentWidth: number
-    // ): TypePriceExtentTick[] => {
-    //     const step = Math.floor((data.length + 2 * TIME_PADDING_IN_DAYS) * boxWidth / contentWidth);
-
-    // }
-
-    private getPriceExtentTicks = (input: TypeCandle[], boxWidth: number, contentWidth: number): TypePriceExtentTick[] => {
-        const data = cloneDeep(input).sort((a, b) => a.t < b.t ? -1 : 1);
-
-        const step = Math.floor((data.length + 2 * TIME_PADDING_IN_DAYS) * boxWidth / contentWidth);   
-
-        const { length } = data;
-        const minLeft: number[] = [];
-        const minRight: number[] = [];
-        const maxLeft: number[] = [];
-        const maxRight: number[] = [];
-    
-        let tempMin: number | null = null;
-        let tempMax: number | null = null;
-    
-        for (let index = 0; index < length; index ++) {
-            const { h, l } = data[index];
-    
-            if(index % step === 0) {
-                tempMin = null;
-                tempMax = null;
-            }
-            
-            if (tempMin === null || l < tempMin) {
-                tempMin = l;
-            }
-            minLeft.push(tempMin as number);
-    
-            if (tempMax === null || h > tempMax) {
-                tempMax = h;
-            }
-            maxLeft.push(tempMax as number);
+        if (extent) {
+            this.scale = d3.scaleLinear()
+                .domain(extent.map(m => m.valueOf()))
+                .range([0, contentWidth]);
         }
-    
-        tempMax = null;
-        tempMin = null;
-    
-        for (let index = length - 1; index >= 0; index --) {
-            const { h, l } = data[index];
-    
-            if (tempMin === null || l < tempMin) {
-                tempMin = l;
-            }
-            minRight.push(tempMin as number);
-    
-            if (tempMax === null || h > tempMax) {
-                tempMax = h;
-            }
-            maxRight.push(tempMax as number);
-    
-            if (index % step === 0) {
-                tempMax = null;
-                tempMin = null;
-            }
-        }
-    
-        minRight.reverse();
-        maxRight.reverse();
+    };
 
-        const ticks: TypePriceExtentTick[] = [];
+    private createLabels = () => {
+        const { ticks, scale, boxWidth, contentWidth, paddingInTicks } = this;
 
-        for (let leftIndex = 0; leftIndex < length; leftIndex ++) {
-            const rightIndex = leftIndex - step + 1;
-            let min = 0;
-            let max = 0;
-    
-            if (rightIndex < 0) {
-                max = maxLeft[leftIndex];
-                min = minLeft[leftIndex];
-            } else {
-                max = Math.max(maxLeft[leftIndex], maxRight[rightIndex]);
-                min = Math.min(minLeft[leftIndex], minRight[rightIndex]);
-            }
-    
-            ticks.push({
-                min,
-                max,
-                time: data[leftIndex].t * 1000
-            });
-        }
-    
-        return ticks;
-    }
+        if (!scale) return;
 
-    private createLabels = (
-        data: TypeCandle[],
-        boxWidth: number,
-        contentWidth: number,
-        scale: d3.ScaleLinear<number, number>,
-    ): TimeLabel[] => {
         const totalUnits = TIME_UNITS_ON_SCREEN * contentWidth / boxWidth;
-        const tickSpans = data.length + 2 * TIME_PADDING_IN_DAYS;
-        const span = Math.floor(tickSpans / totalUnits);
+        const tickSpans = ticks.length + 2 * paddingInTicks - 1;
+        const spanInTickUnits = Math.floor(tickSpans / totalUnits);
 
         const labels: TimeLabel[] = [];
-        
-        for (let index = 0, length = data.length; index < length; index ++) {
-            if (index % span === 0) {
-                const date = moment(data[index].t * 1000);
 
+        for (let index = ticks.length - 1; index >= 0; index --) {
+            if (
+                (ticks.length - 1 - index) % spanInTickUnits === 0
+            ) {
+                const { date } = ticks[index];
                 labels.push({
                     date,
                     position: scale(date.valueOf())
@@ -199,41 +100,49 @@ export class TimeScale {
             }
         }
         
-        return labels;
+        this.labels = labels;       
     }
 
-    getExtent = (): [Moment, Moment] => this.extent;
+
+    getExtent = (): [Moment, Moment] | null => this.extent;
 
     getLabels = (): TimeLabel[] => this.labels;
 
-    getPosition = (input: TimeInSeconds | Moment): number => {
+    getPosition = (input: TimeInSeconds | Moment): number | null => {
+        if (!this.scale) return null;
+
         if (typeof input === 'number') {
-            return this.scale(moment(input * 1000).valueOf());
+            return this.scale(input * 1000);
         }
     
         return this.scale(input.valueOf());
     }
 
-    getTimeFromPosition = (position: number): number => {
-        return this.scale.invert(position)
+    getTimeFromPosition = (position: number): number | null => {
+        return this.scale ? this.scale.invert(position) : null;
     }
 
-    getPriceRangeFromPosition = (position: number): TypePriceExtentTick | null => {
-        const time = this.getTimeFromPosition(position);
-        return this.getTickForTime(time);
-    }
+    getTickFromPosition = (position: number): TimeTick | null => {
+        const timeInMs = this.getTimeFromPosition(position);
 
-    private getTickForTime = (time: number): TypePriceExtentTick | null => {
+        if (timeInMs === null) return null;
+
+        return this.getTickFromTime(timeInMs);
+    } 
+
+    getTickFromTime = (timeInMs: number): TimeTick | null => {
         const { ticks } = this;
 
         if (!ticks.length) return null;
 
+        const date = moment(timeInMs);
         const earliestTick = ticks[0];
         const latestTick = ticks[ticks.length - 1];
 
-        if (time >= latestTick.time) {
+
+        if (date >= latestTick.date) {
             return latestTick;
-        } else if (time <= earliestTick.time) {
+        } else if (date <= earliestTick.date) {
             return earliestTick;
         }
 
@@ -248,9 +157,9 @@ export class TimeScale {
             const midIndex = Math.floor((startIndex + endIndex) / 2);
             const mid = ticks[midIndex];
     
-            if (time <= mid.time && time >= ticks[midIndex - 1].time) {
+            if (date <= mid.date && date >= ticks[midIndex - 1].date) {
                 return mid;
-            } else if (time > mid.time) {
+            } else if (date > mid.date) {
                 startIndex = midIndex + 1;
             } else {
                 endIndex = midIndex;

@@ -8,7 +8,7 @@ import {
     TypePrice,
     TypePrices,
     MappedPrices
-} from 'apis';
+} from '../apis/types';
 
 export const mapPrices = (data: TypePrice[]): MappedPrices => {
     const mapped: MappedPrices = {

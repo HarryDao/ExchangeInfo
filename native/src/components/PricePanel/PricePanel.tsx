@@ -3,7 +3,8 @@ import { StyleSheet, Animated } from 'react-native';
 import { Button, Text, View } from 'native-base';
 import { COLORS, TYPOS } from 'styles';
 import { MainStackNavContext } from 'context';
-import { LineChart, PriceDifference } from 'components';
+import { LineChart } from '../LineChart';
+import { PriceDifference } from '../PriceDifference';
 import { formatName } from 'helpers';
 
 import { TypePrice, TypeHistoricalPrice } from 'apis';
@@ -12,6 +13,7 @@ interface PricePanelProps {
     price: TypePrice;
     history?: TypeHistoricalPrice;
     index: number;
+    hide?: any;
 };
 
 interface PricePanelState {
@@ -58,7 +60,7 @@ export class PricePanel extends React.PureComponent<
     }
 
     render() {
-        const { price, history } = this.props;
+        const { price, history, hide } = this.props;
         const {
             type,
             p,
@@ -84,7 +86,10 @@ export class PricePanel extends React.PureComponent<
 
         return (
             <Animated.View
-                style={styles.wrapper}
+                style={{
+                    ...styles.wrapper,
+                    ...(hide ? styles.wrapperHide : {})
+                }}
             >
                 <Button
                     style={styles.button}
@@ -120,6 +125,9 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         paddingLeft: 10,
         paddingRight: 10,
+    },
+    wrapperHide: {
+        display: 'none',
     },
     button: {
         backgroundColor: COLORS.black_light,

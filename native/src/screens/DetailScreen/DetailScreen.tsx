@@ -1,8 +1,10 @@
 import moment from 'moment';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, ScrollView } from 'react-native';
+import { Subscription } from '@unimodules/core';
 import { connect } from 'react-redux';
 import { View, Container, Content, Text, Spinner } from 'native-base';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { fetchDetail } from 'actions';
 import { CandleChart } from 'components';
 import { COLORS, TYPOS } from 'styles';
@@ -23,12 +25,42 @@ interface DetailsScreenProps extends DetailScreenNavProps {
     fetchDetail: (entity: TypeExchangeEntity) => any,  
 };
 
-class _DetailScreen extends React.PureComponent<DetailsScreenProps> {
+interface DetailsScreenState {
+    isPortrait: boolean;
+}
+
+const INITIAL_STATE: DetailsScreenState = {
+    isPortrait: true
+}
+
+class _DetailScreen extends React.PureComponent<DetailsScreenProps, DetailsScreenState> {
+    orientationSubscription?: Subscription;
+
+    state = INITIAL_STATE;
+
     componentDidMount() {
         this.fetch();
+
+        ScreenOrientation.unlockAsync().then(d => {
+            this.orientationSubscription =  ScreenOrientation.addOrientationChangeListener(
+                this.onOrientationData
+            );
+        });
     }
 
-    componentDidUpdate(prevProps: DetailsScreenProps) {
+    componentWillUnmount() {
+        if (this.orientationSubscription) {
+            ScreenOrientation.removeOrientationChangeListener(this.orientationSubscription);
+        }
+    }
+
+    onOrientationData = ({ orientationInfo }: ScreenOrientation.OrientationChangeEvent) => {
+        this.setState({
+            isPortrait: orientationInfo.orientation !== 3 && orientationInfo.orientation !== 4
+        });
+    }
+
+    componentDidUpdate() {
         this.fetch();
     }
 
@@ -79,21 +111,23 @@ class _DetailScreen extends React.PureComponent<DetailsScreenProps> {
             error,
             type,
             symbol,
-            
         } = this.props;
+        const { isPortrait } = this.state;
         const name = this.formatName(this.props.name);
         const prices = data[symbol] && data[symbol].prices || [];
 
         return (
             <Container style={styles.wrapper}>
                 <Content
-                    alwaysBounceVertical={false}
+                    scrollEnabled={false}
                 >
-                    <DetailScreenHeader
-                        onBackPress={this.onBackPress}
-                        name={name}
-                        symbol={symbol}
-                    />
+                    {isPortrait && (
+                        <DetailScreenHeader
+                            onBackPress={this.onBackPress}
+                            name={name}
+                            symbol={symbol}
+                        />
+                    )}
                     {loading && (
                         <View style={styles.loaderWrapper}>
                             <Spinner
@@ -110,30 +144,33 @@ class _DetailScreen extends React.PureComponent<DetailsScreenProps> {
                         <View style={styles.chartWrapper}>
                             <CandleChart
                                 prices={prices}
+                                isPortrait={isPortrait}
                             />
-                            <View style={styles.infoWrapper}>
-                                {!symbol ? null : (
-                                    <DetailInfoItem
-                                        label='ticker'
-                                        content={[symbol]}
-                                    />
-                                )}
-                                {!type ? null : (
-                                    <DetailInfoItem
-                                        label='type'
-                                        content={type}
-                                    />
-                                )}
-                                {!prices[0] ? null : (
-                                    <DetailInfoItem
-                                        label='last price'
-                                        content={[
-                                            prices[0].c,
-                                            `(${(moment(prices[0].t * 1000).format(`DD MMM, HH:mm:SS`))})`
-                                        ]}
-                                    />
-                                )}
-                            </View>
+                            {isPortrait && (
+                                <View style={styles.infoWrapper}>
+                                    {!symbol ? null : (
+                                        <DetailInfoItem
+                                            label='ticker'
+                                            content={[symbol]}
+                                        />
+                                    )}
+                                    {!type ? null : (
+                                        <DetailInfoItem
+                                            label='type'
+                                            content={type}
+                                        />
+                                    )}
+                                    {!prices[0] ? null : (
+                                        <DetailInfoItem
+                                            label='last price'
+                                            content={[
+                                                prices[0].c,
+                                                `(${(moment(prices[0].t * 1000).format(`DD MMM, HH:mm:SS`))})`
+                                            ]}
+                                        />
+                                    )}
+                                </View>
+                            )}
                         </View>
                     )}
                 </Content>
@@ -144,7 +181,7 @@ class _DetailScreen extends React.PureComponent<DetailsScreenProps> {
 
 const styles = StyleSheet.create({
     wrapper: {
-        backgroundColor: COLORS.black
+        backgroundColor: COLORS.black,
     },
     loaderWrapper: {
         alignItems: 'center',
@@ -157,14 +194,13 @@ const styles = StyleSheet.create({
         color: COLORS.white,
     },
     chartWrapper: {
-        overflow: 'hidden'
+        overflow: 'hidden',
     },
     infoWrapper: {
         marginTop: 20,
         paddingLeft: 10,
         paddingRight: 10,
     },
-
 });
 
 const mapStateToProps = ({ detail }: StoreState) => {

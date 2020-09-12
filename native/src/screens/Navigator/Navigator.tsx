@@ -1,6 +1,7 @@
 import React, { memo, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { connect } from 'react-redux';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import { fetchPrices } from 'actions';
 import { RootStack } from './RootStack';
 

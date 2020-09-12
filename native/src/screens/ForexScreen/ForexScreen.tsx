@@ -1,17 +1,25 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { ScrollView, StyleSheet } from 'react-native';
-import { Container, Content, Text } from 'native-base';
-import { PricePanel } from 'components';
+import { StyleSheet, ScrollView } from 'react-native';
+import { Container, Content, Text, View } from 'native-base';
+import {
+    PricePanel,
+    CurrencyLabels,
+} from 'components';
+import {
+    getCurrencyLabelsSelector,
+    PriceWithCurrencies,
+} from './selectors';
 import { fetchShortTimeCurrency } from 'actions';
 import { COLORS } from 'styles';
 
 import { StoreState } from 'reducers';
-import { TypeHistoricalPrices, TypePrices } from 'apis';
+import { TypeHistoricalPrices, TypePrices, TypePrice } from 'apis';
 import { ForexScreenNavProps } from 'screens';
 
 interface ForexScreenProps extends ForexScreenNavProps {
-    prices: TypePrices;
+    prices: PriceWithCurrencies[];
+    currencies: string[],
     loading: boolean;
     error: boolean;
     shortHistory: TypeHistoricalPrices;
@@ -20,30 +28,68 @@ interface ForexScreenProps extends ForexScreenNavProps {
     fetchShortTimeCurrency: Function;
 }
 
-class _ForexScreen extends React.PureComponent<ForexScreenProps> {
+interface ForexScreenState{
+    highlightCurrency: string;
+}
+
+const INITIAL_STATE: ForexScreenState = {
+    highlightCurrency: ''
+}
+
+class _ForexScreen extends React.PureComponent<
+    ForexScreenProps,
+    ForexScreenState
+> {
+    state = INITIAL_STATE
+
     componentDidMount() {
         this.props.fetchShortTimeCurrency();
     }
 
+    onCurrencyPress = (nextCurrency: string) => {
+        this.setState({
+            highlightCurrency: nextCurrency
+        });
+    }
+
+    onHighlightCurrencyReset = () => {
+        this.setState({
+            highlightCurrency: INITIAL_STATE.highlightCurrency
+        });
+    }
+
     render() {
-        const {
-            prices,
-            shortHistory,
-        } = this.props;
+        const { shortHistory, prices, currencies } = this.props;
+        const { highlightCurrency } = this.state;
 
         return (
             <Container style={styles.wrapper}>
-                <Content>
-                    {Object.values(prices).map((price, index) => {
-                        return (
-                            <PricePanel
-                                key={price.s}
-                                index={index}
-                                price={price}
-                                history={shortHistory[price.s]}
-                            />
-                        );
-                    })}
+                <Content
+                    style={styles.content}
+                >
+                    <CurrencyLabels
+                        currencies={currencies}
+                        highlightCurrency={highlightCurrency}
+                        onReset={this.onHighlightCurrencyReset}
+                        onPress={this.onCurrencyPress}
+                    />
+
+                    <View style={styles.priceWrapper}>
+                        {prices.map((price, index) => {
+                            return (
+                                <PricePanel
+                                    key={price.s}
+                                    index={index}
+                                    price={price}
+                                    history={shortHistory[price.s]}
+                                    hide={
+                                        highlightCurrency &&
+                                        !price.currencies[highlightCurrency]
+                                    }
+                                />
+                            );
+                        })}
+                    </View>
                 </Content>
             </Container>
         );
@@ -53,15 +99,21 @@ class _ForexScreen extends React.PureComponent<ForexScreenProps> {
 const styles = StyleSheet.create({
     wrapper: {
         backgroundColor: COLORS.black
+    },
+    content: {
+        paddingTop: 10,
+    },
+    priceWrapper: {
+
     }
 });
 
-const mapStateToProps = ({
-    price,
-    shortHistory
-}: StoreState) => {
+const mapStateToProps = (state: StoreState) => {
+    const { prices, currencies } = getCurrencyLabelsSelector(state);
+    const { price, shortHistory } = state;
     return {
-        prices: price.currency,
+        prices,
+        currencies,
         loading: price.loading,
         error: price.error,
         shortHistory: shortHistory.currency,

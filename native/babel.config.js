@@ -23,6 +23,7 @@ module.exports = function(api) {
             helpers: './src/helpers',
             components: "./src/components",
             styles: "./src/styles",
+            images: "./src/images",
           }
         }
       ]

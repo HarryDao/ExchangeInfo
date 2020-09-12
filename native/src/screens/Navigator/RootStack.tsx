@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
-import { LoadingModal } from 'screens';
+import { LoadingModal } from '../LoadingModal';
 import { MainStack } from './MainStack';
 import { COLORS } from 'styles';
 

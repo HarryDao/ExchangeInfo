@@ -12,6 +12,7 @@ interface CandleYAxisProps {
     y: number;
     contentHeight: number;
     scale: PriceScale | null;
+    touchY: number | null;
 }
 
 export class CandleYAxis extends React.PureComponent<CandleYAxisProps> {
@@ -20,10 +21,15 @@ export class CandleYAxis extends React.PureComponent<CandleYAxisProps> {
             x,
             y,
             contentHeight,
-            scale
+            scale,
+            touchY,
         } = this.props;
 
         if (!scale) return null;
+
+        const touchPrice = touchY === null
+            ? -1
+            : scale.getPriceFromPosition(touchY) as number;
 
         return (
             <G
@@ -68,6 +74,7 @@ export class CandleYAxis extends React.PureComponent<CandleYAxisProps> {
                                     fontSize={10}
                                     stroke={COLORS.grey}
                                     alignmentBaseline='middle'
+                                    fontWeight='100'
                                 >
                                     {price.toPrecision(5)}
                                 </Text>
@@ -75,6 +82,38 @@ export class CandleYAxis extends React.PureComponent<CandleYAxisProps> {
                         );
                     })}
                 </G>
+
+                {touchY !== null && (
+                    <G
+                        x={0}
+                        y={touchY}
+                    >
+                        <Rect
+                            x={7}
+                            y={-10}
+                            width={40}
+                            height={20}
+                            fill={COLORS.grey}
+                        />
+                        <Line
+                            x1={0}
+                            y1={0}
+                            x2={5}
+                            y2={0}
+                            stroke={COLORS.grey}
+                            strokeWidth='2'
+                        />
+                        <Text
+                            x={10}
+                            fontSize={10}
+                            stroke={COLORS.white}
+                            fontWeight='300'
+                            alignmentBaseline='middle'
+                        >
+                            {touchPrice.toPrecision(5)}
+                        </Text>                        
+                    </G>
+                )}
             </G>
         );
     }

@@ -2,11 +2,10 @@ import React, { memo, useEffect } from 'react';
 import { connect } from 'react-redux';
 import { createStackNavigator } from '@react-navigation/stack';
 import { RootStackNavContext } from 'context';
-import { DetailScreen } from 'screens';
+import { DetailScreen } from '../DetailScreen';
 import { ListTab } from './ListTab';
 
-import { MainStackParamList } from './types';
-import { MainStackNavProps } from 'screens';
+import { MainStackParamList, MainStackNavProps } from './types';
 import { StoreState } from 'reducers';
 
 const Stack = createStackNavigator<

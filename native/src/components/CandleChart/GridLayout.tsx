@@ -10,13 +10,17 @@ interface GridLayoutProps {
     priceScale: PriceScale | null;
     contentHeight: number;
     contentWidth: number;
+    touchX: number | null;
+    touchY: number | null;
 }
 
 function _GridLayout ({
     timeScale,
     priceScale,
     contentHeight,
-    contentWidth
+    contentWidth,
+    touchX,
+    touchY,
 }: GridLayoutProps) {
     return (
         <G>
@@ -52,6 +56,32 @@ function _GridLayout ({
                         />
                     );
                 })}
+            </G>
+
+            <G>
+                {touchX !== null && (
+                    <Line
+                        x1={touchX}
+                        x2={touchX}
+                        y1={0}
+                        y2={contentHeight}
+                        stroke={COLORS.white}
+                        strokeWidth='0.7'
+                        strokeDasharray='5 5'
+                    />
+                )}
+
+                {touchY !== null && (
+                    <Line
+                        x1={0}
+                        x2={contentWidth}
+                        y1={touchY}
+                        y2={touchY}
+                        stroke={COLORS.white}
+                        strokeWidth='0.7'
+                        strokeDasharray='5 5'        
+                    />
+                )}
             </G>
         </G>
     );

@@ -4,7 +4,7 @@ import {
     Dimensions,
     Animated,
     PanResponder,
-    PanResponderInstance
+    PanResponderInstance, RefreshControlBase
 } from 'react-native';
 import { View } from 'native-base';
 import { Svg, G, Rect } from 'react-native-svg';
@@ -19,18 +19,19 @@ import { CANDLE_CONFIGS } from 'configs';
 
 import { TypeCandle } from 'apis';
 import { COLORS } from 'styles';
-import { ScrollPosition } from './ChartScrollView';
+import { ScrollPosition, TouchPosition } from './ChartScrollView';
 
 const {
-    ASPECT_RATIO,
+    SCREEN_ASPECT_RATIO,
+    CONTENT_ASPECT_RATIO,
     TICK_WIDTH,
-    TIME_PADDING_IN_DAYS,
     X_HEIGHT,
     Y_WIDTH,
 } = CANDLE_CONFIGS;
 
 interface CandleChartProps {
-    prices: TypeCandle[]
+    prices: TypeCandle[],
+    isPortrait: boolean,
 }
 
 interface CandleChartState {
@@ -44,6 +45,8 @@ interface CandleChartState {
     priceScale: PriceScale | null,
     scrollPositionX: number;
     scrollPositionY: number;
+    touchPositionX: number | null;
+    touchPositionY: number | null;
 }
 
 export class CandleChart extends React.PureComponent<
@@ -61,6 +64,8 @@ export class CandleChart extends React.PureComponent<
         priceScale: null,
         scrollPositionX: 0,
         scrollPositionY: 0,
+        touchPositionX: null,
+        touchPositionY: null,
     }
 
     componentDidMount() {
@@ -72,21 +77,28 @@ export class CandleChart extends React.PureComponent<
         }
     }
 
-    componentDidUdpate(prevProps: CandleChartProps) {
-        if (prevProps.prices !== this.props.prices) {
+    componentDidUpdate(prevProps: CandleChartProps) {
+        if (
+            prevProps.prices !== this.props.prices ||
+            prevProps.isPortrait !== this.props.isPortrait
+        ) {
             this.calcDisplayDimensions();
             this.calcContentParameters();
         }
     }
 
     calcDisplayDimensions = () => {
-        const displayWidth = Dimensions.get('window').width;
-        const displayHeight = displayWidth / ASPECT_RATIO;
+        const { isPortrait } = this.props;
+
+        const { width, height } = Dimensions.get('window');
+        const displayHeight = isPortrait
+            ? (width / SCREEN_ASPECT_RATIO)
+            : height;
 
         this.setState({
-            displayWidth,
+            displayWidth: width,
             displayHeight,
-            boxWidth: displayWidth - Y_WIDTH,
+            boxWidth: width - Y_WIDTH,
             boxHeight: displayHeight - X_HEIGHT,
         });
     }
@@ -95,23 +107,21 @@ export class CandleChart extends React.PureComponent<
         this.setState(({
             boxHeight,
             boxWidth,
-            scrollPositionX,
-            scrollPositionY,
         }) => {
             const { prices } = this.props;
-            const contentWidth = (prices.length + 2 * TIME_PADDING_IN_DAYS - 1) * TICK_WIDTH;
-            const contentHeight = contentWidth / ASPECT_RATIO;
+            const contentWidth = (prices.length - 1) * TICK_WIDTH + boxWidth;
+            const contentHeight = contentWidth / CONTENT_ASPECT_RATIO;
 
             const timeScale = new TimeScale(
-                prices,
                 boxWidth,
-                contentWidth
+                contentWidth,
+                prices,
             );
 
             const priceScale = new PriceScale(
-                prices,
                 boxHeight,
-                contentHeight
+                contentHeight,
+                prices,
             );
 
             return {
@@ -123,44 +133,56 @@ export class CandleChart extends React.PureComponent<
         }, cb);
     }
 
-    onScroll = (position: ScrollPosition) => {
-        this.setState(({ scrollPositionX, scrollPositionY }) => {
+    onScroll = (scrollPosition: ScrollPosition, touchPosition?: TouchPosition) => {
+        const { x, y } = this.findScrollPosition(scrollPosition);
 
-            const { contentWidth, boxWidth } = this.state;
-
-            const x = Math.min(
-                contentWidth - boxWidth,
-                Math.max(0, position.x),
-            );
-
-            const isForward = x <= scrollPositionX;
-    
-            const y = this.findScrollYPosition(position.x, isForward);
-        
-            return {
-                scrollPositionX: x,
-                scrollPositionY: y === null ? scrollPositionY : y
-            };
+        this.setState({
+            scrollPositionX: x,
+            scrollPositionY: y,
+            touchPositionX: touchPosition ? touchPosition.x : null,
+            touchPositionY: touchPosition ? touchPosition.y : null,
         });
     }
 
-    findScrollYPosition = (
-        x: number,
-        isForward: boolean,
-    ) => {
-        const { timeScale, priceScale, contentWidth, contentHeight } = this.state;
+    findScrollPosition = (position: ScrollPosition): {
+        x: number;
+        y: number;
+    } => {
+        const {
+            contentWidth,
+            contentHeight,
+            boxWidth,
+            timeScale,
+            priceScale,
+            boxHeight
+        } = this.state;
 
-        if (!timeScale || !priceScale) return null;
+        const x = Math.min(
+            contentWidth - boxWidth,
+            Math.max(0, position.x)
+        ); 
+        const scroll = {
+            x,
+            y: position.y
+        };
 
-        const tick = timeScale.getPriceRangeFromPosition(
-            contentWidth - x
+        if (!timeScale || !priceScale) return scroll;
+
+        const midX = contentWidth - x - boxWidth / 2;
+        const tick = timeScale.getTickFromPosition(midX);
+
+        if (!tick) return scroll;
+
+        const midY = priceScale.getPositionFromTimeTick(tick);
+       
+        if (midY === null) return scroll;
+
+        scroll.y = Math.min(
+            contentHeight - boxHeight,
+            Math.max(midY - boxHeight / 2, 0)
         );
 
-        if (!tick) return null;
-
-        const y = priceScale.getScrollPosition(tick.min, tick.max);
-
-        return y - 10;
+        return scroll;
     }
 
     getCurrentScrollPosition = (): ScrollPosition => ({
@@ -172,22 +194,42 @@ export class CandleChart extends React.PureComponent<
         const { prices } = this.props;
         if (!prices.length) return null;
 
+        const { isPortrait } = this.props;
         const {
+            displayWidth,
+            displayHeight,
             scrollPositionX,
             scrollPositionY,
-            displayHeight,
-            displayWidth,
             boxHeight,
             boxWidth,
             contentHeight,
             contentWidth,
             timeScale,
             priceScale,
+            touchPositionX,
+            touchPositionY,
         } = this.state;
 
+        const baseX = boxWidth - contentWidth + scrollPositionX;
+        const baseY = -scrollPositionY;
+        const touchX = touchPositionX === null ?
+            null :
+            (touchPositionX - baseX);
+        const touchY = touchPositionY === null ?
+            null :
+            (touchPositionY - baseY);
+
+        let wrapperStyles: { [key: string]: any } = styles.wrapper;
+        if (!isPortrait) {
+            wrapperStyles = {
+                position: styles.wrapper.position,
+                width: displayWidth,
+                paddingTop: displayHeight,
+            };
+        }
+
         return (
-            <View style={styles.wrapper}>
-                {/* <View style={styles.inner}> */}
+            <View style={wrapperStyles}>
                 <ChartScrollView
                     style={styles.inner}
                     onScroll={this.onScroll}
@@ -195,22 +237,23 @@ export class CandleChart extends React.PureComponent<
                 >
                     <Svg style={styles.svg}>
                         <G
-                            x={boxWidth - contentWidth + scrollPositionX}
-                            y={-scrollPositionY}
+                            x={baseX}
+                            y={baseY}
                         >
                             <GridLayout
                                 timeScale={timeScale}
                                 priceScale={priceScale}
                                 contentHeight={contentHeight}
                                 contentWidth={contentWidth}
+                                touchX={touchX}
+                                touchY={touchY}
                             />
                             
                             <G
                                 x={0}
                                 y={0}
                             >
-                                {prices.map((price, index) => {
-                                    // if (index % 10) return null;
+                                {prices.map((price) => {
                                     return (
                                         <CandleTick
                                             key={price.t}
@@ -227,6 +270,7 @@ export class CandleChart extends React.PureComponent<
                                 y={boxHeight + scrollPositionY}
                                 contentWidth={contentWidth}
                                 scale={timeScale}
+                                touchX={touchX}
                             />
 
                             <CandleYAxis
@@ -234,6 +278,7 @@ export class CandleChart extends React.PureComponent<
                                 y={0}
                                 contentHeight={contentHeight}
                                 scale={priceScale}
+                                touchY={touchY}
                             />
                             <Rect
                                 x={contentWidth - scrollPositionX - 1}
@@ -245,7 +290,6 @@ export class CandleChart extends React.PureComponent<
                         </G>
                     </Svg>
                 </ChartScrollView>
-                {/* </View> */}
             </View>
         );
     }
@@ -254,7 +298,7 @@ export class CandleChart extends React.PureComponent<
 const styles = StyleSheet.create({
     wrapper: {
         width: '100%',
-        paddingTop: `${100 / ASPECT_RATIO}%`,
+        paddingTop: `${100 / SCREEN_ASPECT_RATIO}%`,
         position: 'relative',
     },
     inner: {
@@ -267,6 +311,5 @@ const styles = StyleSheet.create({
     svg: {
         width: '100%',
         height: '100%',
-        // backgroundColor: 'white'
     }
 });

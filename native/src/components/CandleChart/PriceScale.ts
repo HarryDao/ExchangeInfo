@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
 import { CANDLE_CONFIGS } from 'configs';
-
 import { TypeCandle } from 'apis';
+import { TimeTick } from './TimeScale';
 
 const {
     PRICE_UNITS_ON_SCREEN,
@@ -14,69 +14,34 @@ export interface PriceLabel {
 }
 
 export class PriceScale {
-    private scale: d3.ScaleLinear<number, number>;
-    private unit: number;
-    private extent: [number, number];
-    private labels: PriceLabel[];
-    private boxHeight: number;
-    private contentHeight: number;
+    private unit: number = 0;
+    private extent: [number, number] | null = null;
+    private scale: d3.ScaleLinear<number, number> | null = null;
+    private labels: PriceLabel[] = [];
 
     constructor(
+        private boxHeight: number,
+        private contentHeight: number,
         data: TypeCandle[],
-        boxHeight: number,
-        contentHeight: number,
     ) {
-        const { unit, extent } = this.createExtent(
-            data,
-            boxHeight,
-            contentHeight
-        );
-        const scale = this.createScale(contentHeight, extent);
-        const labels = this.createLabels(scale, extent, unit);
-        
-        this.boxHeight = boxHeight;
-        this.contentHeight = contentHeight;
-        this.unit = unit;
-        this.extent = extent;
-        this.scale = scale;
-        this.labels = labels;
+        this.createExtentAndUnit(data);
+        this.createScale();
+        this.createLabels();
     }
 
-    private createExtent = (
-        data: TypeCandle[],
-        boxHeight: number,
-        contentHeight: number,
-    ): {
-        unit: number;
-        extent: [number, number];        
-    } => {
+    private createExtentAndUnit = (data: TypeCandle[]) => {
+        const { boxHeight, contentHeight } = this;
+        const totalSteps =  PRICE_UNITS_ON_SCREEN * contentHeight / boxHeight;
+
         const flatted = data.reduce((arr: number[], d) => {
             arr.push(d.h, d.l);
             return arr;
         }, []);
 
-        const [min, max] = d3.extent(flatted) as [number, number];
-        const difference = max - min;
-        const totalSteps = this.getTotalSteps(boxHeight, contentHeight);
-        return this.calcPriceStep(
-            min - difference * PRICE_PADDING_IN_PERCENTAGES / 100,
-            max + difference * PRICE_PADDING_IN_PERCENTAGES / 100,
-            totalSteps
-        );
-    }
-
-    private getTotalSteps = (boxHeight: number, contentHeight: number) => {
-        return PRICE_UNITS_ON_SCREEN * contentHeight / boxHeight;
-    }
-
-    private calcPriceStep = (
-        min: number,
-        max: number,
-        totalSteps: number
-    ): {
-        unit: number;
-        extent: [number, number];
-    } => {
+        const [rawMin, rawMax] = d3.extent(flatted) as [number, number];
+        const difference = rawMax - rawMin;
+        const min = rawMin - difference * PRICE_PADDING_IN_PERCENTAGES / 100;
+        const max = rawMax + difference * PRICE_PADDING_IN_PERCENTAGES / 100;
         const increment = (max - min) / totalSteps;
         
         let base = 1;
@@ -92,30 +57,29 @@ export class PriceScale {
         }
     
         const unit = Math.floor(number * 2) * (base / 2);
-    
-        return {
-            unit,
-            extent: [
-                Math.floor(min / unit) * unit,
-                Math.ceil(max / unit) * unit
-            ],
-        }
+
+        this.unit = unit;
+        this.extent = [
+            Math.floor(min / unit) * unit,
+            Math.ceil(max / unit) * unit
+        ];
     }
 
-    private createScale = (
-        contentHeight: number,
-        extent: [number, number]
-    ): d3.ScaleLinear<number, number>  => {
-        return d3.scaleLinear()
+    private createScale = () => {
+        const { contentHeight, extent } = this;
+
+        if (!extent) return;
+
+        this.scale = d3.scaleLinear()
             .domain(extent)
             .range([contentHeight, 0]);
-    };
+    }
 
-    private createLabels = (
-        scale: d3.ScaleLinear<number, number>,
-        extent: [number, number],
-        unit: number,
-    ): PriceLabel[] => {
+    private createLabels = () => {
+        const { unit, extent, scale } = this;
+
+        if (!extent || !scale) return;
+
         const [min, max] = extent;
         const labels: PriceLabel[] = [];
 
@@ -133,16 +97,23 @@ export class PriceScale {
             });
         }
 
-        return labels;
-    }
+        this.labels = labels;
+    };
 
     getLabels = (): PriceLabel[] => this.labels;
 
-    getPosition = (price: number): number => this.scale(price);
+    getPositionFromPrice = (price: number): number | null => {
+        return this.scale ? this.scale(price) : null;
+    };
 
-    getScrollPosition = (priceMin: number, priceMax: number): number => {
-        const { scale, boxHeight} = this;
-        const yMax = scale(priceMax);
-        return yMax;
+    getPositionFromTimeTick = (tick: TimeTick): number | null => {
+        const { h, l } = tick;
+        const midPrice = (h + l) / 2;
+        
+        return this.getPositionFromPrice(midPrice);
+    }
+
+    getPriceFromPosition = (position: number): number | null => {
+        return this.scale ? this.scale.invert(position) : null;
     }
 }
