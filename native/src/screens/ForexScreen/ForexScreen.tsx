@@ -59,7 +59,12 @@ class _ForexScreen extends React.PureComponent<
     }
 
     render() {
-        const { shortHistory, prices, currencies } = this.props;
+        const {
+            shortHistory,
+            shortHistoryLoading,
+            prices,
+            currencies
+        } = this.props;
         const { highlightCurrency } = this.state;
 
         return (
@@ -82,6 +87,7 @@ class _ForexScreen extends React.PureComponent<
                                     index={index}
                                     price={price}
                                     history={shortHistory[price.s]}
+                                    historyLoading={shortHistoryLoading}
                                     hide={
                                         highlightCurrency &&
                                         !price.currencies[highlightCurrency]

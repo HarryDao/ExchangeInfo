@@ -24,6 +24,7 @@ const _CommodityScreen = ({
     fetchShortTimeCommodity,
     prices,
     shortHistory,
+    shortHistoryLoading
 }: CommodityScreenProps) => {
     useEffect(() => {
         fetchShortTimeCommodity();
@@ -39,6 +40,7 @@ const _CommodityScreen = ({
                             index={index}
                             price={price}
                             history={shortHistory[price.s]}
+                            historyLoading={shortHistoryLoading}
                         />
                     );
                 })}

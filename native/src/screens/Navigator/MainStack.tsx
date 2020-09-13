@@ -37,6 +37,9 @@ function _MainStack({ navigation, route, socketIsReady, priceLoading }: MainStac
                 <Stack.Screen
                     name='DetailScreen'
                     component={DetailScreen}
+                    options={{
+                        gestureEnabled: false
+                    }}
                 />
             </Stack.Navigator>
         </RootStackNavContext.Provider>

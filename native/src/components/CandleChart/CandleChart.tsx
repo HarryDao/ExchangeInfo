@@ -2,9 +2,6 @@ import React from 'react';
 import {
     StyleSheet,
     Dimensions,
-    Animated,
-    PanResponder,
-    PanResponderInstance, RefreshControlBase
 } from 'react-native';
 import { View } from 'native-base';
 import { Svg, G, Rect } from 'react-native-svg';

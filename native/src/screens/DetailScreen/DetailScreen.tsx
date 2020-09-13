@@ -14,6 +14,7 @@ import { DetailInfoItem } from './DetailInfoItem';
 import { StoreState } from 'reducers';
 import { DetailScreenNavProps } from 'screens';
 import { TypeHistoricalPrices, EntityTypes, TypeExchangeEntity } from 'apis';
+import { DEFAULT_PEGGING_CURRENCY } from 'configs';
 
 interface DetailsScreenProps extends DetailScreenNavProps {
     data: TypeHistoricalPrices,
@@ -113,9 +114,11 @@ class _DetailScreen extends React.PureComponent<DetailsScreenProps, DetailsScree
             symbol,
         } = this.props;
         const { isPortrait } = this.state;
+        
         const name = this.formatName(this.props.name);
+        const unit = this.props.name.split('/')[1] || DEFAULT_PEGGING_CURRENCY;
         const prices = data[symbol] && data[symbol].prices || [];
-
+        
         return (
             <Container style={styles.wrapper}>
                 <Content
@@ -160,14 +163,41 @@ class _DetailScreen extends React.PureComponent<DetailsScreenProps, DetailsScree
                                             content={type}
                                         />
                                     )}
-                                    {!prices[0] ? null : (
+                                    {!unit ? null : (
                                         <DetailInfoItem
-                                            label='last price'
-                                            content={[
-                                                prices[0].c,
-                                                `(${(moment(prices[0].t * 1000).format(`DD MMM, HH:mm:SS`))})`
-                                            ]}
-                                        />
+                                            label='unit currency'
+                                            content={unit}
+                                        />                         
+                                    )}
+                                    {!prices[0] ? null : (
+                                        <React.Fragment>
+                                            <DetailInfoItem
+                                                label='last open'
+                                                content={[
+                                                    prices[0].o.toPrecision(5),
+                                                ]}
+                                            />
+                                                                                                                                    <DetailInfoItem
+                                                label='last close'
+                                                content={[
+                                                    prices[0].c.toPrecision(5),
+                                                ]}
+                                            />
+
+                                            <DetailInfoItem
+                                                label='last high'
+                                                content={[
+                                                    prices[0].h.toPrecision(5),
+                                                ]}
+                                            />
+
+                                            <DetailInfoItem
+                                                label='last low'
+                                                content={[
+                                                    prices[0].l.toPrecision(5),
+                                                ]}
+                                            />
+                                        </React.Fragment>
                                     )}
                                 </View>
                             )}

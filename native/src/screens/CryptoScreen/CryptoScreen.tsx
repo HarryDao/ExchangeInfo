@@ -27,7 +27,7 @@ class _CryptoScreen extends React.PureComponent<CryptoScreenProps> {
     }
 
     render() {
-        const { prices, shortHistory } = this.props;
+        const { prices, shortHistory, shortHistoryLoading } = this.props;
 
         return (
             <Container style={styles.wrapper}>
@@ -39,6 +39,7 @@ class _CryptoScreen extends React.PureComponent<CryptoScreenProps> {
                                 index={index}
                                 price={price}
                                 history={shortHistory[price.s]}
+                                historyLoading={shortHistoryLoading}
                             />
                         );
                     })}

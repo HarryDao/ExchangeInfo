@@ -8,6 +8,7 @@ import { Moment } from 'moment';
 const {
     TIME_UNITS_ON_SCREEN,
     TICK_WIDTH,
+    TICK_PADDING_IN_UNIT_OF_SCREEN_WIDTH,
 } = CANDLE_CONFIGS;
 
 export interface TimeLabel {
@@ -31,7 +32,9 @@ export class TimeScale {
         private contentWidth: number,
         data: TypeCandle[],
     ) {
-        this.paddingInTicks = Math.floor(boxWidth / (TICK_WIDTH * 2));
+        this.paddingInTicks = Math.floor(
+            boxWidth * TICK_PADDING_IN_UNIT_OF_SCREEN_WIDTH / TICK_WIDTH
+        );
 
         this.createTicks(data);
         this.createTimeExtent();

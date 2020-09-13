@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Animated } from 'react-native';
+import { StyleSheet, Animated, ActivityIndicator } from 'react-native';
 import { Button, Text, View } from 'native-base';
 import { COLORS, TYPOS } from 'styles';
 import { MainStackNavContext } from 'context';
@@ -12,6 +12,7 @@ import { TypePrice, TypeHistoricalPrice } from 'apis';
 interface PricePanelProps {
     price: TypePrice;
     history?: TypeHistoricalPrice;
+    historyLoading?: boolean;
     index: number;
     hide?: any;
 };
@@ -60,7 +61,7 @@ export class PricePanel extends React.PureComponent<
     }
 
     render() {
-        const { price, history, hide } = this.props;
+        const { price, history, hide, historyLoading } = this.props;
         const {
             type,
             p,
@@ -100,18 +101,28 @@ export class PricePanel extends React.PureComponent<
                         <Text style={priceStyle}>{p.toPrecision(8)}</Text>
                     </View>
                     <View style={styles.right}>
-                        <PriceDifference
-                            last={
-                                history && history.prices ?
-                                    history.prices[0].c :
-                                    null
-                            }
-                            current={p}
-                        />
-                        <LineChart
-                            history={history}
-                            current={p}
-                        />
+                        {historyLoading && (
+                            <ActivityIndicator
+                                size='small'
+                            />
+                        )}
+                        
+                        {!historyLoading && (
+                            <React.Fragment>
+                                <PriceDifference
+                                    last={
+                                        history && history.prices ?
+                                            history.prices[0].c :
+                                            null
+                                    }
+                                    current={p}
+                                />
+                                <LineChart
+                                    history={history}
+                                    current={p}
+                                />
+                            </React.Fragment>
+                        )}
                     </View>
                 </Button>
             </Animated.View>
@@ -142,6 +153,9 @@ const styles = StyleSheet.create({
     right: {
         width: '50%',
         minHeight: 70,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     symbol: {
         color: COLORS.aqua,

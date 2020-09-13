@@ -7,6 +7,14 @@ import { PriceScale } from './PriceScale';
 
 const { Y_WIDTH } = CANDLE_CONFIGS;
 
+function formatNumber(number: number) {
+    if (number >= 1) {
+        return number.toPrecision(5);
+    } else {
+        return number.toPrecision(4);
+    }
+}
+
 interface CandleYAxisProps {
     x: number;
     y: number;
@@ -76,7 +84,7 @@ export class CandleYAxis extends React.PureComponent<CandleYAxisProps> {
                                     alignmentBaseline='middle'
                                     fontWeight='100'
                                 >
-                                    {price.toPrecision(5)}
+                                    {formatNumber(price)}
                                 </Text>
                             </G>
                         );
@@ -89,7 +97,7 @@ export class CandleYAxis extends React.PureComponent<CandleYAxisProps> {
                         y={touchY}
                     >
                         <Rect
-                            x={7}
+                            x={5}
                             y={-10}
                             width={40}
                             height={20}
@@ -110,7 +118,7 @@ export class CandleYAxis extends React.PureComponent<CandleYAxisProps> {
                             fontWeight='300'
                             alignmentBaseline='middle'
                         >
-                            {touchPrice.toPrecision(5)}
+                            {formatNumber(touchPrice)}
                         </Text>                        
                     </G>
                 )}
