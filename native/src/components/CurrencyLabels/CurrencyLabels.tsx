@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { StyleSheet, ScrollView } from 'react-native';
+import { StyleSheet, ScrollView, FlatList } from 'react-native';
 import { Button, Text } from 'native-base';
 import { CurrencyLabelItem } from './CurrencyLabelItem';
 import { COLORS, TYPOS } from 'styles';
@@ -18,27 +18,33 @@ const _CurrencyLabels = ({
     onPress,
 }: CurrencyLabelProps) => {
     return (
-        <ScrollView
+        <FlatList
+            style={styles.list}
             horizontal
-        >
-            <CurrencyLabelItem
-                label='All'
-                isActive={highlightCurrency === ''}
-                onLabelPress={onReset}
-            />
-
-            {currencies.map(currency => (
+            data={currencies}
+            keyExtractor={c => c}
+            ListHeaderComponent={
                 <CurrencyLabelItem
-                    key={currency}
+                    label='All'
+                    isActive={highlightCurrency === ''}
+                    onLabelPress={onReset}
+                />
+            }
+            renderItem={({ item: currency }) => (
+                <CurrencyLabelItem
                     label={currency}
                     isActive={highlightCurrency === currency}
                     onLabelPress={onPress}
                 />
-            ))}
-        </ScrollView>
+            )}
+        />
     );
 };
 
-
+const styles = StyleSheet.create({
+    list: {
+        paddingVertical: 10,
+    }
+});
 
 export const CurrencyLabels = memo(_CurrencyLabels);

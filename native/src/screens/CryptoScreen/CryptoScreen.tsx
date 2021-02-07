@@ -1,7 +1,8 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { StyleSheet } from 'react-native';
+import { SafeAreaView, StyleSheet, FlatList } from 'react-native';
 import { Container, Content, View, Text } from 'native-base';
+import { StatusBar } from 'expo-status-bar';
 import { StoreState } from 'reducers';
 import { PricePanel } from 'components';
 import { COLORS } from 'styles';
@@ -30,29 +31,36 @@ class _CryptoScreen extends React.PureComponent<CryptoScreenProps> {
         const { prices, shortHistory, shortHistoryLoading } = this.props;
 
         return (
-            <Container style={styles.wrapper}>
-                <Content>
-                    {Object.values(prices).map((price, index) => {
-                        return (
+            <SafeAreaView style={styles.wrapper}>
+                <StatusBar hidden/>
+                <Container style={styles.container}>
+                    <FlatList
+                        data={Object.values(prices)}
+                        keyExtractor={p => p.s}
+                        renderItem={({ item: price, index }) => (
                             <PricePanel
-                                key={price.s}
                                 index={index}
                                 price={price}
                                 history={shortHistory[price.s]}
                                 historyLoading={shortHistoryLoading}
                             />
-                        );
-                    })}
-                </Content>
-            </Container>
+                        )}
+                    />
+                </Container>
+            </SafeAreaView>
         );
     }
 }
 
 const styles = StyleSheet.create({
     wrapper: {
-        backgroundColor: COLORS.black
-    }
+        backgroundColor: COLORS.black,
+        flex: 1,
+    },
+    container: {
+        backgroundColor: COLORS.black,
+        paddingTop: 10,
+    },    
 });
 
 const mapStateToProps = ({ price, shortHistory }: StoreState) => {

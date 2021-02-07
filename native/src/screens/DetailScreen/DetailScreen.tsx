@@ -1,10 +1,11 @@
 import moment from 'moment';
 import React from 'react';
-import { StyleSheet, ScrollView } from 'react-native';
+import { SafeAreaView, StyleSheet, ScrollView } from 'react-native';
 import { Subscription } from '@unimodules/core';
 import { connect } from 'react-redux';
 import { View, Container, Content, Text, Spinner } from 'native-base';
 import * as ScreenOrientation from 'expo-screen-orientation';
+import { StatusBar } from 'expo-status-bar';
 import { fetchDetail } from 'actions';
 import { CandleChart } from 'components';
 import { COLORS, TYPOS } from 'styles';
@@ -120,97 +121,104 @@ class _DetailScreen extends React.PureComponent<DetailsScreenProps, DetailsScree
         const prices = data[symbol] && data[symbol].prices || [];
         
         return (
-            <Container style={styles.wrapper}>
-                <Content
-                    scrollEnabled={false}
-                >
-                    {isPortrait && (
-                        <DetailScreenHeader
-                            onBackPress={this.onBackPress}
-                            name={name}
-                            symbol={symbol}
-                        />
-                    )}
-                    {loading && (
-                        <View style={styles.loaderWrapper}>
-                            <Spinner
-                                size='large'
-                                style={styles.loader}
-                                color={COLORS.white}
+            <SafeAreaView style={styles.wrapper}>
+                <Container style={styles.container}>
+                    <StatusBar hidden/>
+                    <Content
+                        scrollEnabled={false}
+                    >
+                        {isPortrait && (
+                            <DetailScreenHeader
+                                onBackPress={this.onBackPress}
+                                name={name}
+                                symbol={symbol}
                             />
-                            <Text style={styles.loaderText}>
-                                Fetching data ...
-                            </Text>
-                        </View>
-                    )}
-                    {!loading && (
-                        <View style={styles.chartWrapper}>
-                            <CandleChart
-                                prices={prices}
-                                isPortrait={isPortrait}
-                            />
-                            {isPortrait && (
-                                <View style={styles.infoWrapper}>
-                                    {!symbol ? null : (
-                                        <DetailInfoItem
-                                            label='ticker'
-                                            content={[symbol]}
-                                        />
-                                    )}
-                                    {!type ? null : (
-                                        <DetailInfoItem
-                                            label='type'
-                                            content={type}
-                                        />
-                                    )}
-                                    {!unit ? null : (
-                                        <DetailInfoItem
-                                            label='unit currency'
-                                            content={unit}
-                                        />                         
-                                    )}
-                                    {!prices[0] ? null : (
-                                        <React.Fragment>
+                        )}
+                        {loading && (
+                            <View style={styles.loaderWrapper}>
+                                <Spinner
+                                    size='large'
+                                    style={styles.loader}
+                                    color={COLORS.white}
+                                />
+                                <Text style={styles.loaderText}>
+                                    Fetching data ...
+                                </Text>
+                            </View>
+                        )}
+                        {!loading && (
+                            <View style={styles.chartWrapper}>
+                                <CandleChart
+                                    prices={prices}
+                                    isPortrait={isPortrait}
+                                />
+                                {isPortrait && (
+                                    <View style={styles.infoWrapper}>
+                                        {!symbol ? null : (
                                             <DetailInfoItem
-                                                label='last open'
-                                                content={[
-                                                    prices[0].o.toPrecision(5),
-                                                ]}
+                                                label='ticker'
+                                                content={[symbol]}
                                             />
-                                                                                                                                    <DetailInfoItem
-                                                label='last close'
-                                                content={[
-                                                    prices[0].c.toPrecision(5),
-                                                ]}
+                                        )}
+                                        {!type ? null : (
+                                            <DetailInfoItem
+                                                label='type'
+                                                content={type}
                                             />
+                                        )}
+                                        {!unit ? null : (
+                                            <DetailInfoItem
+                                                label='unit currency'
+                                                content={unit}
+                                            />                         
+                                        )}
+                                        {!prices[0] ? null : (
+                                            <React.Fragment>
+                                                <DetailInfoItem
+                                                    label='last open'
+                                                    content={[
+                                                        prices[0].o.toPrecision(5),
+                                                    ]}
+                                                />
+                                                                                                                                        <DetailInfoItem
+                                                    label='last close'
+                                                    content={[
+                                                        prices[0].c.toPrecision(5),
+                                                    ]}
+                                                />
 
-                                            <DetailInfoItem
-                                                label='last high'
-                                                content={[
-                                                    prices[0].h.toPrecision(5),
-                                                ]}
-                                            />
+                                                <DetailInfoItem
+                                                    label='last high'
+                                                    content={[
+                                                        prices[0].h.toPrecision(5),
+                                                    ]}
+                                                />
 
-                                            <DetailInfoItem
-                                                label='last low'
-                                                content={[
-                                                    prices[0].l.toPrecision(5),
-                                                ]}
-                                            />
-                                        </React.Fragment>
-                                    )}
-                                </View>
-                            )}
-                        </View>
-                    )}
-                </Content>
-            </Container>
+                                                <DetailInfoItem
+                                                    label='last low'
+                                                    content={[
+                                                        prices[0].l.toPrecision(5),
+                                                    ]}
+                                                />
+                                            </React.Fragment>
+                                        )}
+                                    </View>
+                                )}
+                            </View>
+                        )}
+                    </Content>
+                </Container>
+            </SafeAreaView>
         );        
     }
 };
 
 const styles = StyleSheet.create({
     wrapper: {
+        backgroundColor: COLORS.black,
+        flex: 1,
+    },
+    container: {
         backgroundColor: COLORS.black,
     },
     loaderWrapper: {

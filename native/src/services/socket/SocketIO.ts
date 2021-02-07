@@ -50,12 +50,13 @@ export class SocketIO {
             if (this.socket) {
                 return resolve(this.socket);
             }
-
+            console.log('connecting:', SOCKET_URL.host, SOCKET_URL.path);
             const socket = openSocketIO(SOCKET_URL.host, {
                 path: SOCKET_URL.path
             });
 
             socket.on(SocketEvents.connect, () => {
+                console.log('connected');
                 this.socket = socket;
                 this.isReady();
                 resolve(socket);

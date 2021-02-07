@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import { StyleSheet, ScrollView } from 'react-native';
-import { Container, Content, Text, View } from 'native-base';
+import { SafeAreaView, StyleSheet, ScrollView, FlatList } from 'react-native';
+import { Container, Content, Text, View, List, ListItem } from 'native-base';
 import {
     PricePanel,
     CurrencyLabels,
@@ -68,49 +68,52 @@ class _ForexScreen extends React.PureComponent<
         const { highlightCurrency } = this.state;
 
         return (
-            <Container style={styles.wrapper}>
-                <Content
-                    style={styles.content}
-                >
-                    <CurrencyLabels
-                        currencies={currencies}
-                        highlightCurrency={highlightCurrency}
-                        onReset={this.onHighlightCurrencyReset}
-                        onPress={this.onCurrencyPress}
-                    />
-
-                    <View style={styles.priceWrapper}>
-                        {prices.map((price, index) => {
-                            return (
-                                <PricePanel
-                                    key={price.s}
-                                    index={index}
-                                    price={price}
-                                    history={shortHistory[price.s]}
-                                    historyLoading={shortHistoryLoading}
-                                    hide={
-                                        highlightCurrency &&
-                                        !price.currencies[highlightCurrency]
-                                    }
-                                />
-                            );
-                        })}
+            <SafeAreaView style={styles.wrapper}>
+                <Container style={styles.container}>
+                    <View>
+                        <CurrencyLabels
+                            currencies={currencies}
+                            highlightCurrency={highlightCurrency}
+                            onReset={this.onHighlightCurrencyReset}
+                            onPress={this.onCurrencyPress}
+                        />
                     </View>
-                </Content>
-            </Container>
+
+                    <FlatList
+                        style={styles.list}
+                        data={prices}
+                        keyExtractor={p => p.s}
+                        renderItem={({ item: price, index }) => (
+                            <PricePanel
+                                index={index}
+                                price={price}
+                                history={shortHistory[price.s]}
+                                historyLoading={shortHistoryLoading}
+                                hide={
+                                    highlightCurrency &&
+                                    !price.currencies[highlightCurrency]
+                                }
+                            />
+                        )}
+                    />
+                </Container>
+            </SafeAreaView>
         );
     }
 };
 
 const styles = StyleSheet.create({
     wrapper: {
-        backgroundColor: COLORS.black
+        backgroundColor: COLORS.black,
+        flex: 1,
+    },
+    container: {
+        backgroundColor: COLORS.black,
     },
     content: {
         paddingTop: 10,
     },
-    priceWrapper: {
-
+    list: {
     }
 });
 

@@ -28,7 +28,7 @@ function _MainStack({ navigation, route, socketIsReady, priceLoading }: MainStac
 
     return (
         <RootStackNavContext.Provider value={{ navigation, route }}>
-            <Stack.Navigator>
+            <Stack.Navigator headerMode='none'>
                 <Stack.Screen
                     name='ListTab'
                     component={ListTab}
